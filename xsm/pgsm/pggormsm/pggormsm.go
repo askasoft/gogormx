@@ -19,6 +19,29 @@ func SM(db *gorm.DB) xsm.SchemaManager {
 	return &gsm{db}
 }
 
+func (gsm *gsm) GetSchema(s string) (*xsm.SchemaInfo, error) {
+	if str.ContainsByte(s, '_') {
+		return nil, nil
+	}
+
+	tx := gsm.db.Table("pg_catalog.pg_namespace")
+	tx = tx.Select(
+		"nspname AS name",
+		"COALESCE((SELECT SUM(pg_relation_size(oid)) FROM pg_catalog.pg_class WHERE relnamespace = pg_namespace.oid), 0) AS size",
+		"COALESCE(obj_description(oid, 'pg_namespace'), '') AS comment",
+	)
+	tx = tx.Where("nspname = ?", s)
+
+	schema := &xsm.SchemaInfo{}
+	if err := tx.Take(schema).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return schema, nil
+}
+
 func (gsm *gsm) ExistsSchema(s string) (bool, error) {
 	if str.ContainsByte(s, '_') {
 		return false, nil
@@ -83,9 +106,7 @@ func (gsm *gsm) DeleteSchema(name string) error {
 	return gsm.db.Exec(pgsm.SQLDeleteSchema(name)).Error
 }
 
-func (gsm *gsm) buildQuery(sq *xsm.SchemaQuery) *gorm.DB {
-	tx := gsm.db.Table("pg_catalog.pg_namespace")
-
+func (gsm *gsm) addQuery(tx *gorm.DB, sq *xsm.SchemaQuery) *gorm.DB {
 	tx = tx.Where("nspname NOT LIKE ?", sqx.StringLike("_"))
 	if sq.Name != "" {
 		tx = tx.Where("nspname LIKE ?", sqx.StringLike(sq.Name))
@@ -94,19 +115,24 @@ func (gsm *gsm) buildQuery(sq *xsm.SchemaQuery) *gorm.DB {
 }
 
 func (gsm *gsm) CountSchemas(sq *xsm.SchemaQuery) (total int, err error) {
+	tx := gsm.db.Table("pg_catalog.pg_namespace")
+	tx = gsm.addQuery(tx, sq)
+
 	var cnt int64
-	err = gsm.buildQuery(sq).Count(&cnt).Error
+	err = tx.Count(&cnt).Error
+
 	total = int(cnt)
 	return
 }
 
 func (gsm *gsm) FindSchemas(sq *xsm.SchemaQuery) (schemas []*xsm.SchemaInfo, err error) {
-	tx := gsm.buildQuery(sq)
+	tx := gsm.db.Table("pg_catalog.pg_namespace")
 	tx = tx.Select(
 		"nspname AS name",
 		"COALESCE((SELECT SUM(pg_relation_size(oid)) FROM pg_catalog.pg_class WHERE relnamespace = pg_namespace.oid), 0) AS size",
 		"COALESCE(obj_description(oid, 'pg_namespace'), '') AS comment",
 	)
+	tx = gsm.addQuery(tx, sq)
 
 	tx = tx.Order(clause.OrderByColumn{Column: clause.Column{Name: sq.Col}, Desc: sq.IsDesc()})
 	if sq.Col != "name" {

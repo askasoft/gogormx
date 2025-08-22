@@ -19,6 +19,29 @@ func SM(db *gorm.DB) xsm.SchemaManager {
 	return &gsm{db}
 }
 
+func (gsm *gsm) GetSchema(s string) (*xsm.SchemaInfo, error) {
+	if asg.Contains(mysm.SysDBs, s) {
+		return nil, nil
+	}
+
+	tx := gsm.db.Table("information_schema.schemata")
+	tx = tx.Select(
+		"schema_name AS name",
+		"(SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = schema_name) AS size",
+		"schema_comment AS comment",
+	)
+	tx = tx.Where("schema_name = ?", s)
+
+	schema := &xsm.SchemaInfo{}
+	if err := tx.Take(schema).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return schema, nil
+}
+
 func (gsm *gsm) ExistsSchema(s string) (bool, error) {
 	if asg.Contains(mysm.SysDBs, s) {
 		return false, nil
@@ -87,9 +110,7 @@ func (gsm *gsm) DeleteSchema(name string) error {
 	return gsm.db.Exec(mysm.SQLDeleteSchema(name)).Error
 }
 
-func (gsm *gsm) buildQuery(sq *xsm.SchemaQuery) *gorm.DB {
-	tx := gsm.db.Table("information_schema.schemata")
-
+func (gsm *gsm) addQuery(tx *gorm.DB, sq *xsm.SchemaQuery) *gorm.DB {
 	tx = tx.Where("schema_name NOT IN ?", mysm.SysDBs)
 	if sq.Name != "" {
 		tx = tx.Where("schema_name LIKE ?", sqx.StringLike(sq.Name))
@@ -98,19 +119,24 @@ func (gsm *gsm) buildQuery(sq *xsm.SchemaQuery) *gorm.DB {
 }
 
 func (gsm *gsm) CountSchemas(sq *xsm.SchemaQuery) (total int, err error) {
+	tx := gsm.db.Table("information_schema.schemata")
+	tx = gsm.addQuery(tx, sq)
+
 	var cnt int64
-	err = gsm.buildQuery(sq).Count(&cnt).Error
+	err = tx.Count(&cnt).Error
+
 	total = int(cnt)
 	return
 }
 
 func (gsm *gsm) FindSchemas(sq *xsm.SchemaQuery) (schemas []*xsm.SchemaInfo, err error) {
-	tx := gsm.buildQuery(sq)
+	tx := gsm.db.Table("information_schema.schemata")
 	tx = tx.Select(
 		"schema_name AS name",
 		"(SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = schema_name) AS size",
 		"schema_comment AS comment",
 	)
+	tx = gsm.addQuery(tx, sq)
 
 	tx = tx.Order(clause.OrderByColumn{Column: clause.Column{Name: sq.Col}, Desc: sq.IsDesc()})
 	if sq.Col != "name" {
