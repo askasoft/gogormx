@@ -3,7 +3,6 @@ package mygormsm
 import (
 	"errors"
 
-	"github.com/askasoft/pango/asg"
 	"github.com/askasoft/pango/sqx"
 	"github.com/askasoft/pangox/xsm"
 	"github.com/askasoft/pangox/xsm/mysm"
@@ -20,7 +19,7 @@ func SM(db *gorm.DB) xsm.SchemaManager {
 }
 
 func (gsm *gsm) GetSchema(s string) (*xsm.SchemaInfo, error) {
-	if asg.Contains(mysm.SysDBs, s) {
+	if mysm.IsSysDB(s) {
 		return nil, nil
 	}
 
@@ -43,7 +42,7 @@ func (gsm *gsm) GetSchema(s string) (*xsm.SchemaInfo, error) {
 }
 
 func (gsm *gsm) ExistsSchema(s string) (bool, error) {
-	if asg.Contains(mysm.SysDBs, s) {
+	if mysm.IsSysDB(s) {
 		return false, nil
 	}
 
@@ -103,7 +102,7 @@ func (gsm *gsm) CommentSchema(name string, comment string) error {
 }
 
 func (gsm *gsm) RenameSchema(old string, new string) error {
-	return errors.New("unsupport")
+	return errors.New("mysql: rename schema is unsupported")
 }
 
 func (gsm *gsm) DeleteSchema(name string) error {

@@ -1,7 +1,7 @@
-github.com/askasoft/pango v1.2.2 h1:1IGzuab/8TjJdbVCQ3UvDYQzPMIPWXj1P2TWXv9GFos=
-github.com/askasoft/pango v1.2.2/go.mod h1:vBeQQkMWAUuY1Svyv1eb5cSKkY76aGd+tg//7TZGi7k=
-github.com/askasoft/pangox v1.2.2 h1:bnWhLIzruIyZHXJgEgLPhy3l5wqcNMuVryhY0l3HthM=
-github.com/askasoft/pangox v1.2.2/go.mod h1:IPnTlSDe9gre5vpk/y4u/Ch9TpGwJQouMqESPxe0tBI=
+github.com/askasoft/pango v1.2.3 h1:xaMsscCeaU5UzlGwLvNJF+9GUNT2Tbl3boI5P91o198=
+github.com/askasoft/pango v1.2.3/go.mod h1:lguSGQNotqeJx0nyW7WikXpxkhdZfPVVoVP83oevIpw=
+github.com/askasoft/pangox v1.2.3 h1:qvO1iIpqKPAd17PMq3AScT5kDURHOuTIOu+ie2bSwK4=
+github.com/askasoft/pangox v1.2.3/go.mod h1:LDggMyv9xO3EC/XDWCoTGFuZrGBPtdRE4HTjFnT+s+0=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

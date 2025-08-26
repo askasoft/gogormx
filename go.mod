@@ -3,8 +3,8 @@ module github.com/askasoft/gogormx
 go 1.23.0
 
 require (
-	github.com/askasoft/pango v1.2.2
-	github.com/askasoft/pangox v1.2.2
+	github.com/askasoft/pango v1.2.3
+	github.com/askasoft/pangox v1.2.3
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.30.1
 )
