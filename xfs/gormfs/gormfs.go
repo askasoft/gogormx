@@ -46,7 +46,7 @@ func (gfs *gfs) FindFile(id string) (*xfs.File, error) {
 	return f, nil
 }
 
-func (gfs *gfs) SaveFile(id string, filename string, modTime time.Time, data []byte) (*xfs.File, error) {
+func (gfs *gfs) SaveFile(id string, filename string, modTime time.Time, data []byte, tag ...string) (*xfs.File, error) {
 	name := filepath.Base(filename)
 	fext := str.ToLower(filepath.Ext(filename))
 
@@ -54,6 +54,7 @@ func (gfs *gfs) SaveFile(id string, filename string, modTime time.Time, data []b
 		ID:   id,
 		Name: name,
 		Ext:  fext,
+		Tag:  str.NonEmpty(tag...),
 		Size: int64(len(data)),
 		Time: modTime,
 		Data: data,
@@ -113,6 +114,11 @@ func (gfs *gfs) DeletePrefix(prefix string) (int64, error) {
 	return r.RowsAffected, r.Error
 }
 
+func (gfs *gfs) DeleteTagged(tag string) (int64, error) {
+	r := gfs.db.Table(gfs.tn).Where("tag = ?", tag).Delete(&xfs.File{})
+	return r.RowsAffected, r.Error
+}
+
 func (gfs *gfs) DeleteBefore(before time.Time) (int64, error) {
 	r := gfs.db.Table(gfs.tn).Where("time < ?", before).Delete(&xfs.File{})
 	return r.RowsAffected, r.Error
@@ -120,6 +126,11 @@ func (gfs *gfs) DeleteBefore(before time.Time) (int64, error) {
 
 func (gfs *gfs) DeletePrefixBefore(prefix string, before time.Time) (int64, error) {
 	r := gfs.db.Table(gfs.tn).Where("id LIKE ? AND time < ?", sqx.StartsLike(prefix), before).Delete(&xfs.File{})
+	return r.RowsAffected, r.Error
+}
+
+func (gfs *gfs) DeleteTaggedBefore(tag string, before time.Time) (int64, error) {
+	r := gfs.db.Table(gfs.tn).Where("tag = ? AND time < ?", tag, before).Delete(&xfs.File{})
 	return r.RowsAffected, r.Error
 }
 
