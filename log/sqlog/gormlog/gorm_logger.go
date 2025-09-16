@@ -8,6 +8,7 @@ import (
 
 	"github.com/askasoft/pango/log"
 	"github.com/askasoft/pango/str"
+	"github.com/askasoft/pango/tmu"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -87,17 +88,17 @@ func (gl *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (str
 		if gl.Logger.IsLevelEnabled(lvl) {
 			sql, rows := fc()
 			if rows < 0 {
-				gl.printf(lvl, "%s [%v] %s", err, elapsed, sql)
+				gl.printf(lvl, "%s [%s] %s", err, tmu.HumanDuration(elapsed), sql)
 			} else {
-				gl.printf(lvl, "%s [%d: %v] %s", err, rows, elapsed, sql)
+				gl.printf(lvl, "%s [%d: %s] %s", err, rows, tmu.HumanDuration(elapsed), sql)
 			}
 		}
 	case gl.SlowThreshold != 0 && elapsed > gl.SlowThreshold && gl.Logger.IsLevelEnabled(gl.SlowSQLLevel):
 		sql, rows := fc()
 		if rows < 0 {
-			gl.printf(gl.SlowSQLLevel, "SLOW >= %v [%v] %s", gl.SlowThreshold, elapsed, sql)
+			gl.printf(gl.SlowSQLLevel, "SLOW >= %s [%s] %s", tmu.HumanDuration(gl.SlowThreshold), tmu.HumanDuration(elapsed), sql)
 		} else {
-			gl.printf(gl.SlowSQLLevel, "SLOW >= %v [%d: %v] %s", gl.SlowThreshold, rows, elapsed, sql)
+			gl.printf(gl.SlowSQLLevel, "SLOW >= %s [%d: %s] %s", tmu.HumanDuration(gl.SlowThreshold), rows, tmu.HumanDuration(elapsed), sql)
 		}
 	default:
 		sql, rows := fc()
