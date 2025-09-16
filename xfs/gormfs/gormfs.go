@@ -76,9 +76,19 @@ func (gfs *gfs) ReadFile(id string) ([]byte, error) {
 	return f.Data, nil
 }
 
-func (gfs *gfs) CopyFile(src, dst string) error {
-	sql := fmt.Sprintf("INSERT INTO %s (id, name, ext, time, size, data) SELECT ?, name, ext, time, size, data FROM %s WHERE id = ?", gfs.tn, gfs.tn)
-	r := gfs.db.Exec(sql, dst, src)
+func (gfs *gfs) CopyFile(src, dst string, tag ...string) error {
+	var args []any
+
+	sql := fmt.Sprintf("INSERT INTO %s (id, name, ext, tag, time, size, data) ", gfs.tn)
+	if len(tag) == 0 {
+		sql += fmt.Sprintf("SELECT ?, name, ext, tag, time, size, data FROM %s WHERE id = ?", gfs.tn)
+		args = append(args, dst, src)
+	} else {
+		sql += fmt.Sprintf("SELECT ? AS id, name, ext, ? AS tag, time, size, data FROM %s WHERE id = ?", gfs.tn)
+		args = append(args, dst, str.NonEmpty(tag...), src)
+	}
+
+	r := gfs.db.Exec(sql, args...)
 	if r.Error != nil {
 		return r.Error
 	}
@@ -88,8 +98,14 @@ func (gfs *gfs) CopyFile(src, dst string) error {
 	return nil
 }
 
-func (gfs *gfs) MoveFile(src, dst string) error {
-	r := gfs.db.Table(gfs.tn).Where("id = ?", src).Update("id", dst)
+func (gfs *gfs) MoveFile(src, dst string, tag ...string) error {
+	tx := gfs.db.Table(gfs.tn).Where("id = ?", src)
+	vs := map[string]any{"id": dst}
+	if len(tag) > 0 {
+		vs["tag"] = str.NonEmpty(tag...)
+	}
+
+	r := tx.Updates(vs)
 	if r.Error != nil {
 		return r.Error
 	}

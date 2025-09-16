@@ -6,7 +6,7 @@ toolchain go1.24.7
 
 require (
 	github.com/askasoft/pango v1.2.4
-	github.com/askasoft/pangox v1.2.4
+	github.com/askasoft/pangox v1.2.5
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.0
 )
@@ -22,8 +22,3 @@ require (
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/text v0.29.0 // indirect
 )
-
-// replace (
-// 	github.com/askasoft/pango => ../pango
-// 	github.com/askasoft/pangox => ../pangox
-// )
