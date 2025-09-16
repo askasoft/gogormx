@@ -46,7 +46,7 @@ func (gfs *gfs) FindFile(id string) (*xfs.File, error) {
 	return f, nil
 }
 
-func (gfs *gfs) SaveFile(id string, filename string, modTime time.Time, data []byte, tag ...string) (*xfs.File, error) {
+func (gfs *gfs) SaveFile(id string, filename string, filetime time.Time, data []byte, tag ...string) (*xfs.File, error) {
 	name := filepath.Base(filename)
 	fext := str.ToLower(filepath.Ext(filename))
 
@@ -56,7 +56,7 @@ func (gfs *gfs) SaveFile(id string, filename string, modTime time.Time, data []b
 		Ext:  fext,
 		Tag:  str.NonEmpty(tag...),
 		Size: int64(len(data)),
-		Time: modTime,
+		Time: filetime,
 		Data: data,
 	}
 
