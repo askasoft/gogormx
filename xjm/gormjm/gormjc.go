@@ -24,10 +24,10 @@ func JC(db *gorm.DB, table string) xjm.JobChainer {
 func (gjc *gjc) GetJobChain(cid int64) (*xjm.JobChain, error) {
 	jc := &xjm.JobChain{}
 	r := gjc.db.Table(gjc.tb).Where("id = ?", cid).Take(jc)
-	if errors.Is(r.Error, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
 	if r.Error != nil {
+		if errors.Is(r.Error, gorm.ErrRecordNotFound) {
+			return nil, xjm.ErrJobChainMissing
+		}
 		return nil, r.Error
 	}
 	return jc, nil

@@ -73,10 +73,10 @@ func (gjm *gjm) GetJob(jid int64, cols ...string) (*xjm.Job, error) {
 		tx = tx.Select(cols)
 	}
 	r := tx.Take(job)
-	if errors.Is(r.Error, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
 	if r.Error != nil {
+		if errors.Is(r.Error, gorm.ErrRecordNotFound) {
+			return nil, xjm.ErrJobMissing
+		}
 		return nil, r.Error
 	}
 	return job, nil
