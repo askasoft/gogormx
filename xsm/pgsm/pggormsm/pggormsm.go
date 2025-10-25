@@ -3,12 +3,12 @@ package pggormsm
 import (
 	"errors"
 
+	"github.com/askasoft/gogormx/gormx"
 	"github.com/askasoft/pango/sqx"
 	"github.com/askasoft/pango/str"
 	"github.com/askasoft/pangox/xsm"
 	"github.com/askasoft/pangox/xsm/pgsm"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type gsm struct {
@@ -132,13 +132,10 @@ func (gsm *gsm) FindSchemas(sq *xsm.SchemaQuery) (schemas []*xsm.SchemaInfo, err
 		"COALESCE((SELECT SUM(pg_total_relation_size(oid)) FROM pg_catalog.pg_class WHERE relnamespace = pg_namespace.oid AND relkind = 'r'), 0) AS size",
 		"COALESCE(obj_description(oid, 'pg_namespace'), '') AS comment",
 	)
-	tx = gsm.addQuery(tx, sq)
+	gsm.addQuery(tx, sq)
 
-	tx = tx.Order(clause.OrderByColumn{Column: clause.Column{Name: sq.Col}, Desc: sq.IsDesc()})
-	if sq.Col != "name" {
-		tx = tx.Order(clause.OrderByColumn{Column: clause.Column{Name: "name"}, Desc: sq.IsDesc()})
-	}
-	tx = tx.Offset(sq.Start()).Limit(sq.Limit)
+	gormx.Orders(tx, sq.Order, "name")
+	tx.Offset(sq.Start()).Limit(sq.Limit)
 
 	err = tx.Find(&schemas).Error
 	return
