@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/askasoft/pango/asg"
 	"github.com/askasoft/pango/sqx"
 	"github.com/askasoft/pango/str"
 	"github.com/askasoft/pangox/xfs"
@@ -54,7 +55,7 @@ func (gfs *gfs) SaveFile(id string, filename string, filetime time.Time, data []
 		ID:   id,
 		Name: name,
 		Ext:  fext,
-		Tag:  str.NonEmpty(tag...),
+		Tag:  asg.First(tag),
 		Size: int64(len(data)),
 		Time: filetime,
 		Data: data,
@@ -85,7 +86,7 @@ func (gfs *gfs) CopyFile(src, dst string, tag ...string) error {
 		args = append(args, dst, src)
 	} else {
 		sql += fmt.Sprintf("SELECT ? AS id, name, ext, ? AS tag, time, size, data FROM %s WHERE id = ?", gfs.tn)
-		args = append(args, dst, str.NonEmpty(tag...), src)
+		args = append(args, dst, tag[0], src)
 	}
 
 	r := gfs.db.Exec(sql, args...)
@@ -102,7 +103,7 @@ func (gfs *gfs) MoveFile(src, dst string, tag ...string) error {
 	tx := gfs.db.Table(gfs.tn).Where("id = ?", src)
 	vs := map[string]any{"id": dst}
 	if len(tag) > 0 {
-		vs["tag"] = str.NonEmpty(tag...)
+		vs["tag"] = tag[0]
 	}
 
 	r := tx.Updates(vs)
