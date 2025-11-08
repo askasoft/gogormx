@@ -1,7 +1,7 @@
-github.com/askasoft/pango v1.2.7 h1:KtWMuYb06L3Hizga1lEC7RoUH+eZRW/qdA9XNCNHnmU=
-github.com/askasoft/pango v1.2.7/go.mod h1:lgrQ3yBJlKePSsymSimGeGvy3uRCQc+kZQxYtJZfuiY=
-github.com/askasoft/pangox v1.2.8 h1:e/GzKGnW5MAO3yW68A/4ocAU9IT607kt+S14+HMK77Y=
-github.com/askasoft/pangox v1.2.8/go.mod h1:V1htx/0llWNCHIwDiBQla3+p5I1iPSdaSRnVfZE2ndE=
+github.com/askasoft/pango v1.2.8 h1:xyZHnSFOUaRPYY3NwuDAxZjxmTJFdE7PqcRoRBdpNXc=
+github.com/askasoft/pango v1.2.8/go.mod h1:lgrQ3yBJlKePSsymSimGeGvy3uRCQc+kZQxYtJZfuiY=
+github.com/askasoft/pangox v1.2.9 h1:2//cMFrJMCW1vptGpEOfQjYXQZceboy4Fl9ypzXQM4I=
+github.com/askasoft/pangox v1.2.9/go.mod h1:3oSo+CqeI0xs0l8HNGUiqOl7DlLsjyCT86O+SN6bdiA=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -40,3 +40,5 @@ gorm.io/driver/postgres v1.6.0 h1:2dxzU8xJ+ivvqTRph34QX+WrRaJlmfyPqXmoGVjMBa4=
 gorm.io/driver/postgres v1.6.0/go.mod h1:vUw0mrGgrTK+uPHEhAdV4sfFELrByKVGnaVRkXDhtWo=
 gorm.io/gorm v1.31.0 h1:0VlycGreVhK7RF/Bwt51Fk8v0xLiiiFdbGDPIZQ7mJY=
 gorm.io/gorm v1.31.0/go.mod h1:XyQVbO2k6YkOis7C2437jSit3SsDK72s7n7rsSHd+Gs=
+gorm.io/gorm v1.31.1 h1:7CA8FTFz/gRfgqgpeKIBcervUn3xSyPUmr6B2WXJ7kg=
+gorm.io/gorm v1.31.1/go.mod h1:XyQVbO2k6YkOis7C2437jSit3SsDK72s7n7rsSHd+Gs=
