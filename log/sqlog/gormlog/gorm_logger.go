@@ -77,7 +77,7 @@ func (gl *GormLogger) getSQLLogLevel(sql string) log.Level {
 
 // Trace print sql message
 func (gl *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
-	elapsed := time.Since(begin)
+	td := time.Since(begin)
 
 	switch {
 	case err != nil && (!errors.Is(err, gorm.ErrRecordNotFound) || gl.TraceRecordNotFoundError):
@@ -88,17 +88,17 @@ func (gl *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (str
 		if gl.Logger.IsLevelEnabled(lvl) {
 			sql, rows := fc()
 			if rows < 0 {
-				gl.printf(lvl, "%s [%s] %s", err, tmu.HumanDuration(elapsed), sql)
+				gl.printf(lvl, "%s [%s] %s", err, tmu.HumanDuration(td), sql)
 			} else {
-				gl.printf(lvl, "%s [%d: %s] %s", err, rows, tmu.HumanDuration(elapsed), sql)
+				gl.printf(lvl, "%s [%d: %s] %s", err, rows, tmu.HumanDuration(td), sql)
 			}
 		}
-	case gl.SlowThreshold != 0 && elapsed > gl.SlowThreshold && gl.Logger.IsLevelEnabled(gl.SlowSQLLevel):
+	case gl.SlowThreshold != 0 && td > gl.SlowThreshold && gl.Logger.IsLevelEnabled(gl.SlowSQLLevel):
 		sql, rows := fc()
 		if rows < 0 {
-			gl.printf(gl.SlowSQLLevel, "SLOW >= %s [%s] %s", tmu.HumanDuration(gl.SlowThreshold), tmu.HumanDuration(elapsed), sql)
+			gl.printf(gl.SlowSQLLevel, "SLOW >= %s [%s] %s", tmu.HumanDuration(gl.SlowThreshold), tmu.HumanDuration(td), sql)
 		} else {
-			gl.printf(gl.SlowSQLLevel, "SLOW >= %s [%d: %s] %s", tmu.HumanDuration(gl.SlowThreshold), rows, tmu.HumanDuration(elapsed), sql)
+			gl.printf(gl.SlowSQLLevel, "SLOW >= %s [%d: %s] %s", tmu.HumanDuration(gl.SlowThreshold), rows, tmu.HumanDuration(td), sql)
 		}
 	default:
 		sql, rows := fc()
@@ -111,9 +111,9 @@ func (gl *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (str
 		lvl := f(sql)
 		if gl.Logger.IsLevelEnabled(lvl) {
 			if rows < 0 {
-				gl.printf(lvl, "[%v] %s", elapsed, sql)
+				gl.printf(lvl, "[%v] %s", tmu.HumanDuration(td), sql)
 			} else {
-				gl.printf(lvl, "[%d: %v] %s", rows, elapsed, sql)
+				gl.printf(lvl, "[%d: %v] %s", rows, tmu.HumanDuration(td), sql)
 			}
 
 		}
