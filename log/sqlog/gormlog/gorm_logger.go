@@ -19,21 +19,22 @@ type GormLogger struct {
 	ErrorSQLLevel            log.Level
 	WriteSQLLevel            log.Level
 	SlowSQLLevel             log.Level
-	SlowThreshold            time.Duration
+	SlowSQLTime              time.Duration
 	TraceRecordNotFoundError bool
 	ParameterizedQueries     bool
 	GetErrLogLevel           func(error) log.Level
 	GetSQLLogLevel           func(string) log.Level
+	IsSlowSQL                func(string, time.Duration) bool
 }
 
-func NewGormLogger(logger log.Logger, slowSQL time.Duration) *GormLogger {
+func NewGormLogger(logger log.Logger) *GormLogger {
 	gl := &GormLogger{
 		Logger:          logger,
 		DefaultSQLLevel: log.LevelDebug,
 		ErrorSQLLevel:   log.LevelError,
 		WriteSQLLevel:   log.LevelInfo,
 		SlowSQLLevel:    log.LevelWarn,
-		SlowThreshold:   slowSQL,
+		SlowSQLTime:     2 * time.Second,
 	}
 
 	return gl
@@ -59,6 +60,55 @@ func (gl *GormLogger) Error(ctx context.Context, msg string, data ...any) {
 	gl.printf(log.LevelError, msg, data...)
 }
 
+// Trace print sql message
+func (gl *GormLogger) ParamsFilter(ctx context.Context, sql string, params ...any) (string, []any) {
+	if gl.ParameterizedQueries {
+		return sql, nil
+	}
+	return sql, params
+}
+
+// Trace print sql message
+func (gl *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
+	td := time.Since(begin)
+	sql, rows := fc()
+
+	switch {
+	case err != nil && (!errors.Is(err, gorm.ErrRecordNotFound) || gl.TraceRecordNotFoundError):
+		lvl := gl.ErrorSQLLevel
+		if f := gl.GetErrLogLevel; f != nil {
+			lvl = f(err)
+		}
+		if gl.Logger.IsLevelEnabled(lvl) {
+			if rows < 0 {
+				gl.printf(lvl, "%s [%s] %s", err, tmu.HumanDuration(td), sql)
+			} else {
+				gl.printf(lvl, "%s [%d: %s] %s", err, rows, tmu.HumanDuration(td), sql)
+			}
+		}
+	case gl.isSlowSQL(sql, td):
+		if rows < 0 {
+			gl.printf(gl.SlowSQLLevel, "SLOW >= %s [%s] %s", tmu.HumanDuration(gl.SlowSQLTime), tmu.HumanDuration(td), sql)
+		} else {
+			gl.printf(gl.SlowSQLLevel, "SLOW >= %s [%d: %s] %s", tmu.HumanDuration(gl.SlowSQLTime), rows, tmu.HumanDuration(td), sql)
+		}
+	default:
+		f := gl.GetSQLLogLevel
+		if f == nil {
+			f = gl.getSQLLogLevel
+		}
+
+		lvl := f(sql)
+		if gl.Logger.IsLevelEnabled(lvl) {
+			if rows < 0 {
+				gl.printf(lvl, "[%v] %s", tmu.HumanDuration(td), sql)
+			} else {
+				gl.printf(lvl, "[%d: %v] %s", rows, tmu.HumanDuration(td), sql)
+			}
+		}
+	}
+}
+
 func (gl *GormLogger) printf(lvl log.Level, msg string, data ...any) {
 	if gl.Logger.IsLevelEnabled(lvl) {
 		le := log.NewEvent(gl.Logger, lvl, fmt.Sprintf(msg, data...))
@@ -75,55 +125,13 @@ func (gl *GormLogger) getSQLLogLevel(sql string) log.Level {
 	return gl.WriteSQLLevel
 }
 
-// Trace print sql message
-func (gl *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
-	td := time.Since(begin)
-
-	switch {
-	case err != nil && (!errors.Is(err, gorm.ErrRecordNotFound) || gl.TraceRecordNotFoundError):
-		lvl := gl.ErrorSQLLevel
-		if f := gl.GetErrLogLevel; f != nil {
-			lvl = f(err)
-		}
-		if gl.Logger.IsLevelEnabled(lvl) {
-			sql, rows := fc()
-			if rows < 0 {
-				gl.printf(lvl, "%s [%s] %s", err, tmu.HumanDuration(td), sql)
-			} else {
-				gl.printf(lvl, "%s [%d: %s] %s", err, rows, tmu.HumanDuration(td), sql)
-			}
-		}
-	case gl.SlowThreshold != 0 && td > gl.SlowThreshold && gl.Logger.IsLevelEnabled(gl.SlowSQLLevel):
-		sql, rows := fc()
-		if rows < 0 {
-			gl.printf(gl.SlowSQLLevel, "SLOW >= %s [%s] %s", tmu.HumanDuration(gl.SlowThreshold), tmu.HumanDuration(td), sql)
-		} else {
-			gl.printf(gl.SlowSQLLevel, "SLOW >= %s [%d: %s] %s", tmu.HumanDuration(gl.SlowThreshold), rows, tmu.HumanDuration(td), sql)
-		}
-	default:
-		sql, rows := fc()
-
-		f := gl.GetSQLLogLevel
-		if f == nil {
-			f = gl.getSQLLogLevel
+func (gl *GormLogger) isSlowSQL(sql string, td time.Duration) bool {
+	if gl.SlowSQLTime > 0 && td > gl.SlowSQLTime && gl.Logger.IsLevelEnabled(gl.SlowSQLLevel) {
+		if f := gl.IsSlowSQL; f != nil {
+			return f(sql, td)
 		}
 
-		lvl := f(sql)
-		if gl.Logger.IsLevelEnabled(lvl) {
-			if rows < 0 {
-				gl.printf(lvl, "[%v] %s", tmu.HumanDuration(td), sql)
-			} else {
-				gl.printf(lvl, "[%d: %v] %s", rows, tmu.HumanDuration(td), sql)
-			}
-
-		}
+		return true
 	}
-}
-
-// Trace print sql message
-func (gl *GormLogger) ParamsFilter(ctx context.Context, sql string, params ...any) (string, []any) {
-	if gl.ParameterizedQueries {
-		return sql, nil
-	}
-	return sql, params
+	return false
 }

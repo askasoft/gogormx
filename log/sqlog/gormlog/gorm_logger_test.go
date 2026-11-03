@@ -25,8 +25,7 @@ func TestGormLogger(t *testing.T) {
 	dsn := "host=127.0.0.1 user=pango password=pango dbname=pango port=5432 sslmode=disable"
 	gdb, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: &GormLogger{
-			Logger:        logger,
-			SlowThreshold: time.Second,
+			Logger: logger,
 		},
 		SkipDefaultTransaction: true,
 	})
