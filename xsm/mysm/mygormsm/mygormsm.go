@@ -59,8 +59,8 @@ func (gsm *gsm) ExistsSchema(s string) (bool, error) {
 
 func (gsm *gsm) ListSchemas() ([]string, error) {
 	tx := gsm.db.Table("information_schema.schemata")
-	tx = tx.Where("schema_name NOT IN ?", mysm.SysDBs)
 	tx = tx.Select("schema_name")
+	tx = tx.Where("schema_name NOT IN ?", mysm.SysDBs)
 	tx = tx.Order("schema_name asc")
 
 	rows, err := tx.Rows()
@@ -82,6 +82,10 @@ func (gsm *gsm) ListSchemas() ([]string, error) {
 }
 
 func (gsm *gsm) CreateSchema(name, comment string) error {
+	if mysm.IsSysDB(name) {
+		return mysm.ErrInvalidSchemaName
+	}
+
 	err := gsm.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Exec(mysm.SQLCreateSchema(name)).Error; err != nil {
 			return err
@@ -106,20 +110,25 @@ func (gsm *gsm) RenameSchema(old string, new string) error {
 }
 
 func (gsm *gsm) DeleteSchema(name string) error {
+	if mysm.IsSysDB(name) {
+		return mysm.ErrInvalidSchemaName
+	}
+
 	return gsm.db.Exec(mysm.SQLDeleteSchema(name)).Error
 }
 
-func (gsm *gsm) addQuery(tx *gorm.DB, sq *xsm.SchemaQuery) *gorm.DB {
-	tx = tx.Where("schema_name NOT IN ?", mysm.SysDBs)
+func (gsm *gsm) addQuery(tx *gorm.DB, sq *xsm.SchemaQuery) {
+	tx.Where("schema_name NOT IN ?", mysm.SysDBs)
+
 	if sq.Name != "" {
-		tx = tx.Where("schema_name LIKE ?", sqx.StringLike(sq.Name))
+		tx.Where("schema_name LIKE ?", sqx.StringLike(sq.Name))
 	}
-	return tx
 }
 
 func (gsm *gsm) CountSchemas(sq *xsm.SchemaQuery) (total int, err error) {
 	tx := gsm.db.Table("information_schema.schemata")
-	tx = gsm.addQuery(tx, sq)
+
+	gsm.addQuery(tx, sq)
 
 	var cnt int64
 	err = tx.Count(&cnt).Error

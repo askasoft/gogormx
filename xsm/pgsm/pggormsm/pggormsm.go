@@ -5,7 +5,6 @@ import (
 
 	"github.com/askasoft/gogormx/gormx"
 	"github.com/askasoft/pango/sqx"
-	"github.com/askasoft/pango/str"
 	"github.com/askasoft/pangox/xsm"
 	"github.com/askasoft/pangox/xsm/pgsm"
 	"gorm.io/gorm"
@@ -20,7 +19,7 @@ func SM(db *gorm.DB) xsm.SchemaManager {
 }
 
 func (gsm *gsm) GetSchema(s string) (*xsm.SchemaInfo, error) {
-	if str.ContainsByte(s, '_') {
+	if pgsm.IsSysSM(s) {
 		return nil, nil
 	}
 
@@ -43,7 +42,7 @@ func (gsm *gsm) GetSchema(s string) (*xsm.SchemaInfo, error) {
 }
 
 func (gsm *gsm) ExistsSchema(s string) (bool, error) {
-	if str.ContainsByte(s, '_') {
+	if pgsm.IsSysSM(s) {
 		return false, nil
 	}
 
@@ -59,7 +58,10 @@ func (gsm *gsm) ExistsSchema(s string) (bool, error) {
 }
 
 func (gsm *gsm) ListSchemas() ([]string, error) {
-	tx := gsm.db.Table("pg_catalog.pg_namespace").Where("nspname NOT LIKE ?", sqx.StringLike("_")).Select("nspname").Order("nspname asc")
+	tx := gsm.db.Table("pg_catalog.pg_namespace").Select("nspname")
+	gsm.filterSysSM(tx)
+	tx.Order("nspname asc")
+
 	rows, err := tx.Rows()
 	if err != nil {
 		return nil, err
@@ -79,6 +81,10 @@ func (gsm *gsm) ListSchemas() ([]string, error) {
 }
 
 func (gsm *gsm) CreateSchema(name, comment string) error {
+	if pgsm.IsSysSM(name) {
+		return pgsm.ErrInvalidSchemaName
+	}
+
 	err := gsm.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Exec(pgsm.SQLCreateSchema(name)).Error; err != nil {
 			return err
@@ -99,24 +105,38 @@ func (gsm *gsm) CommentSchema(name string, comment string) error {
 }
 
 func (gsm *gsm) RenameSchema(old string, new string) error {
+	if pgsm.IsSysSM(old) || pgsm.IsSysSM(new) {
+		return pgsm.ErrInvalidSchemaName
+	}
+
 	return gsm.db.Exec(pgsm.SQLRenameSchema(old, new)).Error
 }
 
 func (gsm *gsm) DeleteSchema(name string) error {
+	if pgsm.IsSysSM(name) {
+		return pgsm.ErrInvalidSchemaName
+	}
+
 	return gsm.db.Exec(pgsm.SQLDeleteSchema(name)).Error
 }
 
-func (gsm *gsm) addQuery(tx *gorm.DB, sq *xsm.SchemaQuery) *gorm.DB {
-	tx = tx.Where("nspname NOT LIKE ?", sqx.StringLike("_"))
-	if sq.Name != "" {
-		tx = tx.Where("nspname LIKE ?", sqx.StringLike(sq.Name))
-	}
+func (gsm *gsm) filterSysSM(tx *gorm.DB) *gorm.DB {
+	tx = tx.Where("nspname <> ?", "information_schema")
+	tx = tx.Where("nspname NOT ILIKE ?", sqx.StartsLike("pg_"))
 	return tx
+}
+
+func (gsm *gsm) addQuery(tx *gorm.DB, sq *xsm.SchemaQuery) {
+	if sq.Name != "" {
+		tx.Where("nspname ILIKE ?", sqx.StringLike(sq.Name))
+	}
+	gsm.filterSysSM(tx)
 }
 
 func (gsm *gsm) CountSchemas(sq *xsm.SchemaQuery) (total int, err error) {
 	tx := gsm.db.Table("pg_catalog.pg_namespace")
-	tx = gsm.addQuery(tx, sq)
+
+	gsm.addQuery(tx, sq)
 
 	var cnt int64
 	err = tx.Count(&cnt).Error
